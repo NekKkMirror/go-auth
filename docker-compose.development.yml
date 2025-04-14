@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  app:
+    image: local/go-auth_development
+    container_name: local_go-auth_development
+    hostname: local/go-auth_development
+    build:
+      context: .
+      target: dev
+    ports:
+      - "${APP_PORT}:${APP_PORT}"
+    environment:
+      - APP_PORT=${APP_PORT}
+      - APP_ENV=${APP_ENV}
+      - APP_API_BASE_PATH=${APP_API_BASE_PATH}
+      - APP_JWT_SECRET=${APP_JWT_SECRET}
+
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+
+      - DB_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable
+    volumes:
+      - ./:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:latest
+    container_name: local_go-auth_db_development
+    hostname: local/go-auth_db_development
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+    volumes:
+      - go-auth_development_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  go-auth_development_postgres_data:
